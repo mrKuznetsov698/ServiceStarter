@@ -75,11 +75,25 @@ func main() {
 		})
 	}
 
+	setErrorCookie := func(ctx *gin.Context, err error) {
+		ctx.SetCookie("Error", err.Error(), 2, "/", "", false, true)
+	}
+
+	deleteErrorCookie := func(ctx *gin.Context) {
+		ctx.SetCookie("Error", "Haha, nothing there", -1, "/", "", false, true)
+	}
+
 	router.GET("/", func(ctx *gin.Context) {
-		indexPageHandler(ctx, nil)
+		cookie, e := ctx.Cookie("Error")
+		if e != nil {
+			indexPageHandler(ctx, nil)
+		} else {
+			deleteErrorCookie(ctx)
+			indexPageHandler(ctx, errors.New(cookie))
+		}
 	})
 
-	router.POST("/", func(ctx *gin.Context) {
+	router.POST("/form", func(ctx *gin.Context) {
 		data := &PostData{}
 		err := ctx.Bind(data)
 		if err != nil {
@@ -92,20 +106,16 @@ func main() {
 			ctx.String(http.StatusBadRequest, "Wrong action in POST form data: %s", data.Action)
 			return
 		}
+		var action func() error
 		if data.Action == "start" {
-			if e := startService(); e != nil {
-				indexPageHandler(ctx, e)
-			} else {
-				indexPageHandler(ctx, nil)
-			}
+			action = startService
 		} else {
-			if e := stopService(); e != nil {
-				indexPageHandler(ctx, e)
-			} else {
-				indexPageHandler(ctx, nil)
-			}
+			action = stopService
 		}
-		//ctx.Redirect(http.StatusMovedPermanently, "/")
+		if e := action(); e != nil {
+			setErrorCookie(ctx, e)
+		}
+		ctx.Redirect(http.StatusFound, "/")
 	})
 
 	err = router.Run("0.0.0.0:2024")

@@ -3,5 +3,5 @@
 export GOOS="linux"
 export GOARCH="arm64"
 
-go build -o arm_hello . && \
+go build -ldflags "-s -w" -o arm_hello . && \
 scp arm_hello nanopi:

@@ -1,0 +1,42 @@
+#!/bin/sh /etc/rc.common
+# Uishechka service
+
+START=82
+STOP=82
+
+EXTRA_COMMANDS="status"
+EXTRA_HELP="        status          Show status"
+
+DIR="/opt/uishechka"
+NAME="uishechka"
+BIN="$DIR/$NAME"
+
+start() {
+    if pgrep $NAME > /dev/null; then
+        echo "Already running, if needed use restart"
+    else
+        $BIN
+    fi
+}
+
+stop() {
+    if pgrep $NAME > /dev/null; then
+        killall -q $NAME
+    else
+        echo "Already stopped"
+    fi
+}
+
+restart() {
+    stop
+    sleep 0.1
+    start
+}
+
+status() {
+    if pgrep $NAME > /dev/null; then
+        echo "✔️ Running"
+    else
+        echo "🞬 Stopped"
+    fi
+}
