@@ -55,20 +55,16 @@ func main() {
 	router.StaticFile("/favicon.png", "./static/favicon.png")
 	router.LoadHTMLFiles("./static/index.gohtml")
 
-	indexPageHandler := func(ctx *gin.Context, errs []error) {
+	indexPageHandler := func(ctx *gin.Context, err error) {
 		status, e := isRunning()
-		//if errs == nil {
-		//	errs = make([]error, 0)
-		//}
-		errs = append(errs, e)
 		ctx.HTML(http.StatusOK, "index.gohtml", gin.H{
 			"running":       status,
-			"error_message": errors.Join(errs...),
+			"error_message": errors.Join(e, err),
 		})
 	}
 
 	router.GET("/", func(ctx *gin.Context) {
-		indexPageHandler(ctx, []error{})
+		indexPageHandler(ctx, nil)
 	})
 
 	router.POST("/", func(ctx *gin.Context) {
@@ -86,45 +82,18 @@ func main() {
 		}
 		if data.Action == "start" {
 			if e := startService(); e != nil {
-				indexPageHandler(ctx, []error{e})
+				indexPageHandler(ctx, e)
 			} else {
-				indexPageHandler(ctx, []error{})
+				indexPageHandler(ctx, nil)
 			}
 		} else {
 			if e := stopService(); e != nil {
-				indexPageHandler(ctx, []error{e})
+				indexPageHandler(ctx, e)
 			} else {
-				indexPageHandler(ctx, []error{})
+				indexPageHandler(ctx, nil)
 			}
 		}
 		//ctx.Redirect(http.StatusMovedPermanently, "/")
-	})
-
-	router.GET("/start", func(ctx *gin.Context) {
-		e := startService()
-		if e != nil {
-			ctx.String(http.StatusInternalServerError, "Something went wrong while starting: %s", e)
-		} else {
-			ctx.String(http.StatusOK, "sing-box up & running!")
-		}
-	})
-	router.GET("/stop", func(ctx *gin.Context) {
-		e := stopService()
-		if e != nil {
-			ctx.String(http.StatusInternalServerError, "Something went wrong while stopping: %s", e)
-		} else {
-			ctx.String(http.StatusOK, "sing-box stopped!")
-		}
-	})
-	router.GET("/running", func(ctx *gin.Context) {
-		status, e := isRunning()
-		if e != nil {
-			ctx.String(http.StatusInternalServerError, "Something went wrong while checking: %s", e)
-		} else if status {
-			ctx.String(http.StatusOK, "sing-box is running!")
-		} else {
-			ctx.String(http.StatusOK, "sing-box is stopped")
-		}
 	})
 
 	err = router.Run("0.0.0.0:2024")
