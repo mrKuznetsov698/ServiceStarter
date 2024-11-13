@@ -1,8 +1,10 @@
 package main
 
 import (
+	"embed"
 	"errors"
 	"github.com/gin-gonic/gin"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"os/exec"
@@ -43,7 +45,11 @@ type PostData struct {
 	Action string `form:"action"`
 }
 
+//go:embed static static/*
+var embdfs embed.FS
+
 func main() {
+	gin.SetMode(gin.DebugMode)
 	router := gin.Default()
 
 	err := router.SetTrustedProxies(nil)
@@ -52,8 +58,14 @@ func main() {
 		panic(err)
 	}
 
-	router.StaticFile("/favicon.png", "./static/favicon.png")
-	router.LoadHTMLFiles("./static/index.gohtml")
+	// http.FS - просто обёртка
+	router.StaticFileFS("/favicon.png", "static/favicon.png", http.FS(embdfs))
+	// It is so inconvenient...
+	// Why not router.LoadHTMLFilesFs(fs, path)?
+	router.SetHTMLTemplate(template.Must(template.New("meow").ParseFS(embdfs, "static/*.gohtml")))
+
+	//router.StaticFile("/favicon.png", "./static/favicon.png")
+	//router.LoadHTMLFiles("./static/index.gohtml")
 
 	indexPageHandler := func(ctx *gin.Context, err error) {
 		status, e := isRunning()
